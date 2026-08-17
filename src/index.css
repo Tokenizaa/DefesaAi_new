@@ -1,0 +1,156 @@
+@import "tailwindcss";
+
+:root {
+  /* Design Tokens Oficiais - Padrão Digital GOV.BR */
+  --blue-warm-vivid-70: #071D41;
+  --blue-warm-vivid-60: #155BCB;
+  --blue-warm-vivid-80: #0C326F;
+  --blue-warm-20: #C2D9FF;
+  --blue-warm-10: #E7EFFF;
+  
+  --gray-2: #F8F8F8;
+  --gray-5: #F0F0F0;
+  --gray-10: #E6E6E6;
+  --gray-20: #CCCCCC;
+  --gray-60: #555555;
+  --gray-80: #333333;
+  --gray-90: #1B1B1B;
+  --pure-white: #FFFFFF;
+
+  --green-cool-vivid-50: #168821;
+  --green-cool-10: #E3F5E1;
+  --yellow-vivid-20: #FFCD07;
+  --yellow-vivid-10: #FFF5C2;
+  --red-vivid-50: #E52207;
+  --red-vivid-10: #FDE8E5;
+  
+  --font-family-gov: 'Rawline', 'Raleway', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  font-family: var(--font-family-gov);
+  background-color: var(--gray-2);
+  color: var(--gray-90);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Indicador de Foco Acessível Obrigatório GOV.BR / eMAG */
+*:focus-visible {
+  outline: 3px solid var(--blue-warm-vivid-60) !important;
+  outline-offset: 2px !important;
+}
+
+/* Tema de Alto Contraste (eMAG / WCAG 2.1 AA) */
+html.high-contrast,
+html.high-contrast body {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+html.high-contrast *:focus-visible {
+  outline: 3px solid #FFFF00 !important;
+  outline-offset: 2px !important;
+}
+
+html.high-contrast div,
+html.high-contrast section,
+html.high-contrast header,
+html.high-contrast nav,
+html.high-contrast footer,
+html.high-contrast aside,
+html.high-contrast main,
+html.high-contrast article,
+html.high-contrast .bg-white,
+html.high-contrast .bg-slate-50,
+html.high-contrast .bg-slate-100,
+html.high-contrast .bg-slate-200,
+html.high-contrast .bg-slate-900,
+html.high-contrast .bg-slate-950,
+html.high-contrast .bg-blue-50,
+html.high-contrast .bg-orange-50,
+html.high-contrast .bg-emerald-50 {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  border-color: #FFFF00 !important;
+}
+
+html.high-contrast h1,
+html.high-contrast h2,
+html.high-contrast h3,
+html.high-contrast h4,
+html.high-contrast h5,
+html.high-contrast h6,
+html.high-contrast p,
+html.high-contrast span,
+html.high-contrast label,
+html.high-contrast strong,
+html.high-contrast em,
+html.high-contrast td,
+html.high-contrast th,
+html.high-contrast .text-slate-900,
+html.high-contrast .text-slate-800,
+html.high-contrast .text-slate-700,
+html.high-contrast .text-slate-600,
+html.high-contrast .text-slate-500,
+html.high-contrast .text-slate-400 {
+  color: #FFFFFF !important;
+}
+
+html.high-contrast a,
+html.high-contrast .text-blue-600,
+html.high-contrast .text-orange-500,
+html.high-contrast .text-orange-600,
+html.high-contrast .text-emerald-600 {
+  color: #FFFF00 !important;
+  text-decoration: underline !important;
+}
+
+html.high-contrast button,
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+  border: 2px solid #FFFF00 !important;
+}
+
+html.high-contrast .bg-blue-600,
+html.high-contrast .bg-orange-500,
+html.high-contrast .bg-emerald-600,
+html.high-contrast .bg-slate-900 {
+  background-color: #000000 !important;
+  color: #FFFF00 !important;
+  border: 2px solid #FFFF00 !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.25s ease-out forwards;
+}
