@@ -303,23 +303,14 @@ function AppContent() {
 
        {currentPath === "/cadastro" && <AuthPageView mode="register" />}
 
-       {currentPath === "/novo-caso" && (
-         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
-           <OnboardingWizard
-             onCaseReadyForCheckout={handleCaseReadyForCheckout}
-             onOpenKnowledge={() => navigate("/admin/knowledge")}
-           />
-         </div>
-       )}
-
-      {currentPath === '/novo-caso' && (
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
-          <OnboardingWizard
-            onCaseReadyForCheckout={handleCaseReadyForCheckout}
-            onOpenKnowledge={() => navigate('/admin/knowledge')}
-          />
-        </div>
-      )}
+        {currentPath === "/novo-caso" && (
+          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
+            <OnboardingWizard
+              onCaseReadyForCheckout={handleCaseReadyForCheckout}
+              onOpenKnowledge={() => navigate("/admin/knowledge")}
+            />
+          </div>
+        )}
 
       {/* WhatsApp Evolution API Modal */}
       <WhatsAppSimulatorModal

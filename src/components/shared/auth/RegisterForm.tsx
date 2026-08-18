@@ -153,20 +153,31 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           </div>
         </div>
 
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
-          <label className="flex items-start gap-2 cursor-pointer text-[11px] text-slate-700">
-            <input
-              type="checkbox"
-              id="register-terms"
-              required
-              className="mt-0.5 rounded border-slate-300 text-[#155BCB] focus:ring-[#155BCB]"
-            />
-            <span>
-              Concordo com os Termos de Uso e a Política de Privacidade em conformidade com a <strong>LGPD (Lei nº 13.709/2018)</strong>.
-            </span>
-          </label>
-        </div>
-      </div>
-    </AuthForm>
-  );
-};
+<div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+           <label className="flex items-start gap-2 cursor-pointer text-[11px] text-slate-700">
+             <input
+               type="checkbox"
+               id="register-terms"
+               required
+               className="mt-0.5 rounded border-slate-300 text-[#155BCB] focus:ring-[#155BCB]"
+             />
+             <span>
+               Concordo com os Termos de Uso e a Política de Privacidade em conformidade com a <strong>LGPD (Lei nº 13.709/2018)</strong>.
+             </span>
+           </label>
+         </div>
+         
+         <div className="pt-4">
+           <button type="submit" className={
+             `w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium
+              bg-[#155BCB] text-white rounded-lg hover:bg-[#155BCB]/90
+              transition-all disabled:opacity-50 disabled:cursor-not-allowed
+              ${isLoading ? 'opacity-70' : ''}`
+           }>
+             {isLoading ? 'Cadastrando...' : 'Cadastrar'}
+           </button>
+         </div>
+       </div>
+     </AuthForm>
+   );
+ };
