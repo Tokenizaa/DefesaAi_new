@@ -24,44 +24,10 @@ export class PublicacaoAgent {
     try {
       logger.info('marketing', 'agents', 'run', 'Publicação agent starting cycle');
 
-      // Simulate publishing work
-      await this.scheduleContentForPublishing();
-
-      // Avança o pipeline real: aprovado_qualidade -> agendado -> publicado (fila Meta)
-      const next = marketingService.getEditorialContents().find((c) => c.status === 'aprovado_qualidade');
-      if (next) {
-        marketingService.updateContent(next.id, { status: 'agendado' });
-        metaPublisher.enqueue({
-          destination: 'both',
-          message: `${next.copyText}\n\n${next.hashtags.join(' ')}`,
-          linkUrl: 'https://defesai.com.br',
-        }, next.id);
-        eventBus.publish(EventTopics.MARKETING_CONTENT_PUBLISHED, { contentId: next.id }, 'marketing_os');
-        logger.info('marketing', 'agents', 'publish', `Conteúdo ${next.id} agendado e enfileirado na Meta`);
-      }
-
-      await this.publishToPlatforms();
-      await this.trackPublicationPerformance();
-
-      // Update agent status
-      const agents = marketingService.getMarketingAgents();
-      const agentIndex = agents.findIndex(a => a.id === this.id);
-      if (agentIndex !== -1) {
-        const updatedAgent = {
-          ...agents[agentIndex],
-          lastActivity: 'Agora mesmo',
-          tasksCompleted: agents[agentIndex].tasksCompleted + 1,
-          currentTask: 'Publicando e monitorando conteúdo nas plataformas'
-        };
-        marketingService.updateMarketingAgent(this.id, updatedAgent);
-      }
-
-      // Publish event for published content
-      eventBus.publish(EventTopics.MARKETING_CONTENT_PUBLISHED, {
-        agentId: this.id,
-        timestamp: new Date().toISOString(),
-        platform: 'instagram' // simulated
-      }, 'marketing_os');
+      // P1: Implementar respeito ao horário agendado
+      // Agendar publicação para o scheduledDate específico do conteúdo
+      // Não publicar imediatamente ao enfileirar
+      await this.processScheduledContent();
 
       this.lastRun = new Date();
       logger.info('marketing', 'agents', 'run', 'Publicação agent cycle completed', {
@@ -73,6 +39,143 @@ export class PublicacaoAgent {
     } finally {
       this.isRunning = false;
     }
+  }
+
+  /**
+   * P1: Implementar respeito ao horário agendado
+   * Processa conteúdo cujo scheduledDate chegou ou passou
+   * Não publica imediatamente ao enfileirar, respeita o horário agendado
+   */
+  private async processScheduledContent(): Promise<void> {
+    try {
+      logger.debug('marketing', 'agents', 'publicacao', 'Processing scheduled content');
+      
+      // Get content that is approved and ready for scheduling
+      const contents = await marketingService.getEditorialContents();
+      const approvedContent = contents.filter(c => c.status === 'aprovado_qualidade');
+      
+      const now = new Date();
+      
+      for (const content of approvedContent) {
+        // Check if content has a scheduled date and if that time has come
+        const scheduledDateStr = content.scheduled_date || content.scheduledDate;
+        if (scheduledDateStr) {
+          const scheduledDate = new Date(scheduledDateStr);
+          
+          // If scheduled time has arrived or passed, move to agendado and enqueue for publishing
+          if (scheduledDate <= now) {
+            logger.info('marketing', 'agents', 'publicacao', `Processing content ${content.id} scheduled for ${scheduledDateStr}`);
+            
+            // Move content to agendado status
+            await marketingService.updateContent(content.id, { 
+              status: 'agendado',
+              updatedAt: new Date().toISOString()
+            });
+            
+            // Enqueue for publishing (this will happen immediately in the meta publisher,
+            // but in a more sophisticated system, we might wait until the exact time)
+            metaPublisher.enqueue({
+              destination: 'both',
+              message: `${content.copyText}\n\n${content.hashtags.join(' ')}`,
+              linkUrl: 'https://defesai.com.br',
+            }, content.id);
+            
+            eventBus.publish(EventTopics.MARKETING_CONTENT_PUBLISHED, { contentId: content.id }, 'marketing_os');
+            logger.info('marketing', 'agents', 'publish', `Conteúdo ${content.id} agendado e enfileirado na Meta`);
+          }
+          // Else, content is not ready yet - leave it in aprovado_qualidade until scheduled time
+        }
+        // If no scheduled date, we could either:
+        // 1. Schedule it for the next available slot (would need calendar integration)
+        // 2. Leave it as is (current behavior)
+        // For now, we'll leave content without scheduled date in aprovado_qualidade
+      }
+      
+      // Also check if there's already agendado content that needs to be published
+      // This respects the scheduled date by only publishing when the time arrives
+      const agendadoContent = contents.filter(c => c.status === 'agendado');
+      for (const content of agendadoContent) {
+        const scheduledDateStr = content.scheduled_date || content.scheduledDate;
+        if (scheduledDateStr) {
+          const scheduledDate = new Date(scheduledDateStr);
+          // If scheduled time has arrived or passed, publish now
+          if (scheduledDate <= now) {
+            logger.info('marketing', 'agents', 'publicacao', `Publishing scheduled content ${content.id} (scheduled for ${scheduledDateStr})`);
+            
+            // Publish the content
+            const result = metaPublisher.enqueue({
+              destination: 'both',
+              message: `${content.copyText}\n\n${content.hashtags.join(' ')}`,
+              linkUrl: 'https://defesai.com.br',
+            }, content.id);
+            
+            // Update status to published
+            await marketingService.updateContent(content.id, { 
+              status: 'publicado',
+              publishedAt: new Date().toISOString(),
+              meta_post_id: result.itemId, // Assuming we get an ID back
+              updatedAt: new Date().toISOString()
+            });
+            
+            eventBus.publish(EventTopics.MARKETING_CONTENT_PUBLISHED, { 
+              contentId: content.id,
+              metaPostId: result.itemId
+            }, 'marketing_os');
+            
+            logger.info('marketing', 'agents', 'publish', `Conteúdo ${content.id} publicado`);
+          }
+        }
+        // If no scheduled date, publish immediately (fallback behavior)
+        else {
+          logger.info('marketing', 'agents', 'publicacao', `Publishing content ${content.id} without scheduled date (immediate)`);
+          
+          const result = metaPublisher.enqueue({
+            destination: 'both',
+            message: `${content.copyText}\n\n${content.hashtags.join(' ')}`,
+            linkUrl: 'https://defesai.com.br',
+          }, content.id);
+          
+          await marketingService.updateContent(content.id, { 
+            status: 'publicado',
+            publishedAt: new Date().toISOString(),
+            meta_post_id: result.itemId,
+            updatedAt: new Date().toISOString()
+          });
+          
+          eventBus.publish(EventTopics.MARKETING_CONTENT_PUBLISHED, { 
+            contentId: content.id,
+            metaPostId: result.itemId
+          }, 'marketing_os');
+          
+          logger.info('marketing', 'agents', 'publish', `Conteúdo ${content.id} publicado`);
+        }
+      }
+    } catch (error) {
+      logger.error('marketing', 'agents', 'publicacao', 'Error processing scheduled content', { error });
+      throw error;
+    }
+  }
+
+  // Keep the original methods but mark them as deprecated or for internal use
+  private async scheduleContentForPublishing(): Promise<void> {
+    // This method is kept for backward compatibility but is no longer used in the main run loop
+    // The actual scheduling logic is now in processScheduledContent() which respects scheduledDate
+    logger.debug('marketing', 'agents', 'publicacao', 'scheduleContentForPublishing called (deprecated - use processScheduledContent)');
+    await new Promise(resolve => setTimeout(resolve, 10)); // Minimal delay to maintain async behavior
+  }
+
+  private async publishToPlatforms(): Promise<void> {
+    // This method is kept for backward compatibility but is no longer used in the main run loop
+    // The actual publishing logic is now in processScheduledContent()
+    logger.debug('marketing', 'agents', 'publicacao', 'publishToPlatforms called (deprecated - use processScheduledContent)');
+    await new Promise(resolve => setTimeout(resolve, 10)); // Minimal delay to maintain async behavior
+  }
+
+  private async trackPublicationPerformance(): Promise<void> {
+    // This method is kept for backward compatibility but is no longer used in the main run loop
+    // Performance tracking is now handled by the marketingMetricsCollector agent
+    logger.debug('marketing', 'agents', 'publicacao', 'trackPublicationPerformance called (deprecated - handled by marketingMetricsCollector)');
+    await new Promise(resolve => setTimeout(resolve, 10)); // Minimal delay to maintain async behavior
   }
 
   private async scheduleContentForPublishing(): Promise<void> {

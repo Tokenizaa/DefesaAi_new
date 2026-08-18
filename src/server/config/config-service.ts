@@ -292,8 +292,24 @@ class ConfigService {
       },
 
       // =========================================================================
-      // 3. PAGAMENTOS (PagBank / PIX)
+      // 3. PAGAMENTOS (PagBank / GGPIXAPI / Gateway Abstraction)
       // =========================================================================
+      {
+        key: 'PAYMENT_ACTIVE_GATEWAY',
+        name: 'Gateway de Pagamento Ativo',
+        category: 'payments',
+        type: 'select',
+        description: 'Gateway utilizado para novas cobranças PIX. Pagamentos existentes NÃO são afetados pela troca.',
+        defaultValue: 'pagbank',
+        isSecret: false,
+        isRequired: true,
+        isEditable: true,
+        options: [
+          { label: 'PagBank / PagSeguro (Recomendado — PIX + Cartão)', value: 'pagbank' },
+          { label: 'GGPIXAPI (Apenas PIX In)', value: 'ggpixapi' },
+        ],
+        envSource: 'PAYMENT_ACTIVE_GATEWAY',
+      },
       {
         key: 'PAGBANK_ENV',
         name: 'Ambiente PagBank',
@@ -333,6 +349,30 @@ class ConfigService {
         isRequired: false,
         isEditable: true,
         envSource: 'PAGBANK_WEBHOOK_SECRET',
+      },
+      {
+        key: 'GGPIX_API_KEY',
+        name: 'GGPIXAPI Chave de API',
+        category: 'payments',
+        type: 'secret',
+        description: 'API Key do GGPIXAPI para autenticação (header X-API-Key). Obtida em Configurações → Credenciais no painel.',
+        defaultValue: '',
+        isSecret: true,
+        isRequired: false,
+        isEditable: true,
+        envSource: 'GGPIX_API_KEY',
+      },
+      {
+        key: 'GGPIX_ENABLED',
+        name: 'GGPIXAPI Habilitado',
+        category: 'payments',
+        type: 'boolean',
+        description: 'Ativa o gateway GGPIXAPI para processar cobranças PIX In',
+        defaultValue: false,
+        isSecret: false,
+        isRequired: false,
+        isEditable: true,
+        envSource: 'GGPIX_ENABLED',
       },
       {
         key: 'PAYMENT_DEFAULT_AMOUNT',

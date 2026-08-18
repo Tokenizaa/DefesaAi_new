@@ -1,8 +1,8 @@
 /**
  * @file payment-repository.ts
- * PaymentRepository — Dual-Engine Persistence Layer (DefesAi / PagBank)
+ * PaymentRepository — Dual-Engine Persistence Layer (DefesAi / PagBank / GGPIXAPI)
  *
- * Espelha as estruturas em memória do PagBankIntegrationService (orders e
+ * Espelha as estruturas em memória dos gateways de pagamento (orders e
  * webhook events) na camada Supabase com write-through best-effort.
  *
  * Padrão (idêntico ao case-repository.ts e commercial-repository.ts): a memória
@@ -14,6 +14,7 @@
  *  - `payment_orders`: upsert por `case_id` (UNIQUE natural; 1 pedido/caso).
  *    Só é persistido quando `case_id` é um UUID válido — a coluna é FK NOT NULL
  *    para `public.cases(id)` e os casos demo (`case_*`) vivem apenas em memória.
+ *    Campo `gateway` registra qual provedor criou o pagamento.
  *  - `payment_webhook_events`: insert/upsert append-only com idempotência por
  *    `pagbank_event_id` (coluna UNIQUE TEXT).
  */
@@ -23,6 +24,7 @@ import { Database, Json } from '../../types/supabase';
 import { logger } from '../observability/logger';
 import { getSupabaseServerClient } from './supabase-server';
 import { PagBankOrderResult, PagBankWebhookPayload } from '../integrations/pagbank';
+import { GatewayId } from '../integrations/gateway/types';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -71,36 +73,77 @@ export class PaymentRepository {
   /**
    * Upsert por `case_id` (1 pedido por caso). Requer case_id UUID válido
    * (FK NOT NULL para public.cases(id)); casos demo são ignorados.
+   *
+   * Suporta tanto PagBankOrderResult (compat) quanto GatewayPixResult (novo).
+   * Campo `gateway` registra qual provedor criou o pagamento — essencial
+   * para a regra de que trocar gateway não migra pagamentos existentes.
    */
   persistOrder(
-    order: PagBankOrderResult,
-    extras: { paymentMethod?: 'pix' | 'credit_card' | 'boleto'; userId?: string } = {}
+    order: PagBankOrderResult | {
+      caseId: string;
+      orderId?: string;
+      gatewayTransactionId?: string;
+      referenceId?: string;
+      status: string;
+      amount?: number;
+      amountInCents?: number;
+      qrCodeUrl?: string;
+      qrCodeText?: string;
+      pixCopyPaste?: string;
+      qrCodeDataUrl?: string;
+      expiresAt?: string;
+      createdAt?: string;
+    },
+    extras: {
+      paymentMethod?: 'pix' | 'credit_card' | 'boleto';
+      userId?: string;
+      gateway?: GatewayId;
+    } = {}
   ): void {
     if (!this.client) return;
     if (!this.isUuid(order.caseId)) {
       return;
     }
+
+    // Normalizar valores — suportar tanto PagBank (amount float) quanto Gateway (amountInCents int)
+    const amount = 'amount' in order && typeof order.amount === 'number'
+      ? order.amount
+      : 'amountInCents' in order && typeof order.amountInCents === 'number'
+        ? order.amountInCents / 100
+        : 0;
+
+    const orderId = ('orderId' in order ? order.orderId : undefined)
+      || ('gatewayTransactionId' in order ? (order as any).gatewayTransactionId : undefined)
+      || null;
+
+    const pixText = ('qrCodeText' in order ? order.qrCodeText : undefined)
+      || ('pixCopyPaste' in order ? (order as any).pixCopyPaste : undefined)
+      || null;
+
     const payload: Database['public']['Tables']['payment_orders']['Insert'] = {
       case_id: order.caseId,
       user_id: extras.userId && this.isUuid(extras.userId) ? extras.userId : null,
       reference_id: order.referenceId ?? null,
-      pagbank_order_id: order.orderId ?? null,
+      pagbank_order_id: orderId,
       status: order.status,
-      amount: order.amount,
+      amount,
       currency: 'BRL',
       payment_method: extras.paymentMethod ?? null,
       qr_code_url: order.qrCodeUrl ?? null,
-      qr_code_text: order.qrCodeText ?? null,
+      qr_code_text: pixText,
       qr_code_data_url: order.qrCodeDataUrl ?? null,
-      final_amount: order.amount,
+      final_amount: amount,
       expires_at: order.expiresAt ?? null,
       paid_at: order.status === 'PAID' ? new Date().toISOString() : null,
       created_at: order.createdAt ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      // Campo gateway — registra qual provedor criou este pagamento
+      ...(extras.gateway ? { gateway: extras.gateway } : {}),
     };
     this.fire('payment_orders', this.client.from('payment_orders').upsert(payload, { onConflict: 'case_id' }), {
       caseId: order.caseId,
-      orderId: order.orderId,
+      orderId,
+      gateway: extras.gateway,
     });
   }
 

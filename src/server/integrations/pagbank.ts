@@ -4,11 +4,11 @@
  * idempotency control, and direct synchronization with DefesAi case lifecycle.
  */
 
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import QRCode from 'qrcode';
 import { eventBus, EventTopics } from '../../core/events/topics';
 import { paymentRepository } from '../db/payment-repository';
-import { logger } from '../observability/logger';
+import { logger, LogOperationStatus } from '../observability/logger';
 
 export interface PagBankCustomer {
   name: string;
@@ -22,21 +22,21 @@ export interface PagBankCustomer {
 }
 
 export interface PagBankItem {
-  referenceId: string;
-  name: string;
-  quantity: number;
-  unitAmount: number; // In cents (e.g., 8990 for R$ 89,90)
-}
+   referenceId: string;
+   name: string;
+   quantity: number;
+   unitAmount: number; // Em centavos (ex.: 8990 para R$ 89,90)
+ }
 
 export interface CreateOrderParams {
-  caseId: string;
-  referenceId?: string;
-  customer: PagBankCustomer;
-  items?: PagBankItem[];
-  amount: number; // In BRL float (e.g. 89.90 or 97.00)
-  description?: string;
-  notificationUrls?: string[];
-}
+   caseId: string;
+   referenceId?: string;
+   customer: PagBankCustomer;
+   items?: PagBankItem[];
+   amount: number; // Em float BRL (ex. 89.90 ou 97.00)
+   description?: string;
+   notificationUrls?: string[];
+ }
 
 export interface CreditCardOrderParams extends CreateOrderParams {
   installments?: number;
@@ -90,13 +90,14 @@ class PagBankIntegrationService {
   private webhookSecret: string;
   private appBaseUrl: string;
 
-  // In-memory transaction store for tracking and idempotency
+  // Armazenamento em memória para transações e idempotência
   private orders: Map<string, PagBankOrderResult> = new Map();
   private processedWebhookIds: Set<string> = new Set();
 
   constructor() {
     this.token = process.env.PAGBANK_TOKEN || process.env.PAGSEGURO_TOKEN || '';
-    this.environment = (process.env.PAGBANK_ENV as 'sandbox' | 'production') || 'sandbox';
+    const envRaw = process.env.PAGBANK_ENV;
+    this.environment = (envRaw === 'sandbox' || envRaw === 'production') ? envRaw : 'sandbox';
     this.apiBaseUrl =
       this.environment === 'production'
         ? 'https://api.pagseguro.com'
@@ -105,15 +106,15 @@ class PagBankIntegrationService {
     this.appBaseUrl = process.env.APP_URL || 'https://defesai.com.br';
   }
 
-  /**
-   * Verifies PagBank webhook signature using HMAC-SHA256
-   * Official PagBank webhook signature validation
-   * Header: X-Hub-Signature-256 or X-PagBank-Signature
-   */
+/**
+    * Verifica a assinatura do webhook do PagBank usando HMAC-SHA256
+    * Validação oficial de assinatura de webhook do PagBank
+    * Cabeçalho: X-Hub-Signature-256 ou X-PagBank-Signature
+    */
   private verifyWebhookSignature(rawBody: string, signatureHeader: string): boolean {
     if (!this.webhookSecret) {
       logger.warn('payments', 'pagbank', 'verify_webhook', 'PAGBANK_WEBHOOK_SECRET not configured, skipping signature verification');
-      return true; // Allow in development without secret
+      return true; // Permitir em desenvolvimento sem segredo
     }
 
     if (!signatureHeader) {
@@ -121,42 +122,42 @@ class PagBankIntegrationService {
       return false;
     }
 
-    // PagBank uses X-Hub-Signature-256: sha256=<hash> format
+    // PagBank usa X-Hub-Signature-256: sha256=<hash> formato
     const expectedSignature = `sha256=${crypto
       .createHmac('sha256', this.webhookSecret)
       .update(rawBody, 'utf8')
       .digest('hex')}`;
 
-    // Support both header formats
+    // Suportar ambos os formatos de cabeçalho
     const receivedSignature = signatureHeader.startsWith('sha256=')
       ? signatureHeader
       : `sha256=${signatureHeader}`;
 
-    // Constant-time comparison to prevent timing attacks
+    // Comparação em tempo constante para prevenir ataques de timing
     return crypto.timingSafeEqual(
       Buffer.from(expectedSignature),
       Buffer.from(receivedSignature)
     );
   }
 
-  /**
-   * Sanitizes tax ID (CPF/CNPJ) to numbers only
-   */
+/**
+    * Sanitiza o ID do tributo (CPF/CNPJ) para apenas números
+    */
   private cleanTaxId(cpfOrCnpj: string): string {
     return (cpfOrCnpj || '').replace(/\D/g, '');
   }
 
-  /**
-   * Builds notification URLs for webhook callbacks
-   */
+/**
+    * Constrói URLs de notificação para callbacks de webhook
+    */
   private buildNotificationUrls(): string[] {
     const baseUrl = this.appBaseUrl.replace(/\/$/, '');
     return [`${baseUrl}/api/webhooks/pagbank`];
   }
 
-  /**
-   * Creates an official PagBank Order with PIX QR Code & copy-paste EMV payload
-   */
+/**
+    * Cria uma ordem oficial do PagBank com QR Code PIX & payload EMV para copia e cola
+    */
   public async createPixOrder(params: CreateOrderParams): Promise<PagBankOrderResult> {
     const { caseId, customer, amount } = params;
     const cleanCpf = this.cleanTaxId(customer.taxId) || '12345678909';
@@ -164,7 +165,7 @@ class PagBankIntegrationService {
     const referenceId = params.referenceId || `defesai_case_${caseId}_${Date.now()}`;
     const orderId = `ORDE_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-    // Official PagBank PIX EMV structure
+    // Estrutura oficial PIX EMV do PagBank
     const emvPixString = `00020126580014br.gov.bcb.pix0136defesai.pagbank@defesai.com.br0204MULT5204000053039865405${amount.toFixed(
       2
     )}5802BR5915DEFESAI BRASIL6009SAO PAULO62070503***6304E8A9`;
@@ -192,19 +193,19 @@ class PagBankIntegrationService {
       qrCodeText: emvPixString,
       qrCodeUrl: `https://pagbank.com.br/pix/qr/${orderId}`,
       qrCodeDataUrl,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      createdAt: new Date().toISOString(),
-      paymentMethod: 'pix',
-    };
+expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+       createdAt: new Date().toISOString(),
+       paymentMethod: 'pix',
+     };
 
-    // Store in memory for polling and webhook lookup
-    this.orders.set(orderId, orderResult);
+     // Armazenar em memória para polling e pesquisa de webhook
+     this.orders.set(orderId, orderResult);
     this.orders.set(referenceId, orderResult);
     this.orders.set(`case_${caseId}`, orderResult);
-    paymentRepository.persistOrder(orderResult, { paymentMethod: 'pix' });
+paymentRepository.persistOrder(orderResult, { paymentMethod: 'pix' });
 
-    // Call real PagBank API if token is configured
-    if (this.token && !this.token.startsWith('mock_')) {
+     // Chamar API real do PagBank se o token estiver configurado
+     if (this.token && !this.token.startsWith('mock_')) {
       try {
         const notificationUrls = this.buildNotificationUrls();
         
@@ -250,10 +251,10 @@ class PagBankIntegrationService {
               margin: 2,
               color: { dark: '#071D41', light: '#ffffff' },
             });
-          }
-          // Update stored order with real PagBank orderId
-          this.orders.set(data.id, orderResult);
-        }
+}
+           // Atualizar ordem armazenada com orderId real do PagBank
+           this.orders.set(data.id, orderResult);
+         }
       } catch (err) {
         logger.warn('payments', 'pagbank', 'create_pix_order', 'Live API call fallback to sandbox order', { error: String(err) });
       }
@@ -268,10 +269,10 @@ class PagBankIntegrationService {
     return orderResult;
   }
 
-  /**
-   * Creates an official PagBank Order with Credit Card payment
-   * Supports 3DS authentication (CHALLENGE or FRICTIONLESS)
-   */
+/**
+    * Cria uma ordem oficial do PagBank com pagamento com cartão de crédito
+    * Suporta autenticação 3DS (CHALLENGE ou FRICTIONLESS)
+    */
   public async createCreditCardOrder(params: CreditCardOrderParams): Promise<PagBankOrderResult> {
     const { caseId, customer, amount, installments = 1, cardToken, authenticationMethod = 'CHALLENGE', softDescriptor } = params;
     const cleanCpf = this.cleanTaxId(customer.taxId) || '12345678909';
@@ -288,109 +289,182 @@ class PagBankIntegrationService {
       expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
       createdAt: new Date().toISOString(),
       paymentMethod: 'credit_card',
-      threeDsChallengeRequired: authenticationMethod === 'CHALLENGE',
-    };
-
-    // Store in memory for polling and webhook lookup
-    this.orders.set(orderId, orderResult);
+threeDsChallengeRequired: authenticationMethod === 'CHALLENGE',
+     };
+     
+     // Armazenar em memória para polling e pesquisa de webhook
+     this.orders.set(orderId, orderResult);
     this.orders.set(referenceId, orderResult);
     this.orders.set(`case_${caseId}`, orderResult);
     paymentRepository.persistOrder(orderResult, { paymentMethod: 'credit_card' });
 
-    // Call real PagBank API if token is configured
-    if (this.token && !this.token.startsWith('mock_')) {
-      try {
-        const notificationUrls = this.buildNotificationUrls();
-        
-        const response = await fetch(`${this.apiBaseUrl}/orders`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.token}`,
-          },
-          body: JSON.stringify({
-            reference_id: referenceId,
-            customer: {
-              name: customer.name || 'Condutor DefesAi',
-              email: customer.email || 'contato@defesai.com.br',
-              tax_id: cleanCpf,
-            },
-            items: [
-              {
-                reference_id: `service_${caseId}`,
-                name: 'Minuta Jurídica Formal — Recurso de Trânsito DefesAi',
-                quantity: 1,
-                unit_amount: amountInCents,
-              },
-            ],
-            payment_method: {
-              type: 'CREDIT_CARD',
-              installments,
-              card: {
-                token: cardToken,
-              },
-              authentication_method: authenticationMethod,
-              soft_descriptor: softDescriptor || 'DEFAI*RECURSO',
-            },
-            notification_urls: notificationUrls,
-          }),
-        });
+// Chamar API real do PagBank se o token estiver configurado
+       if (this.token && !this.token.startsWith('mock_')) {
+       try {
+         const notificationUrls = this.buildNotificationUrls();
+         
+         const response = await fetch(`${this.apiBaseUrl}/orders`, {
+           method: 'POST',
+           headers: {
+             'Content-Type': 'application/json',
+             Authorization: `Bearer ${this.token}`,
+           },
+           body: JSON.stringify({
+             reference_id: referenceId,
+             customer: {
+               name: customer.name || 'Condutor DefesAi',
+               email: customer.email || 'contato@defesai.com.br',
+               tax_id: cleanCpf,
+             },
+             items: [
+               {
+                 reference_id: `service_${caseId}`,
+                 name: 'Minuta Jurídica Formal — Recurso de Trânsito DefesAi',
+                 quantity: 1,
+                 unit_amount: amountInCents,
+               },
+             ],
+             payment_method: {
+               type: 'CREDIT_CARD',
+               installments,
+               card: {
+                 token: cardToken,
+               },
+               authentication_method: authenticationMethod,
+               soft_descriptor: softDescriptor || 'DEFAI*RECURSO',
+             },
+             notification_urls: notificationUrls,
+           }),
+         });
 
-        const data = await response.json();
-        
-        if (data.id) {
-          orderResult.orderId = data.id;
-          
-          // Handle 3DS challenge response
-          if (data.payment_response?.three_ds_challenge?.url) {
-            orderResult.threeDsUrl = data.payment_response.three_ds_challenge.url;
-            orderResult.threeDsChallengeRequired = true;
-            orderResult.status = 'WAITING';
-          } else if (data.payment_response?.status === 'AUTHORIZED') {
-            orderResult.status = 'AUTHORIZED';
-          } else if (data.payment_response?.status === 'PAID') {
-            orderResult.status = 'PAID';
-          } else {
-            orderResult.status = data.payment_response?.status || 'WAITING';
-          }
+// Tratar erros HTTP (4xx, 5xx) da API do PagBank
+          if (!response.ok) {
+            let errorData;
+            try {
+              errorData = await response.json();
+            } catch (e) {
+              errorData = { error: 'Erro desconhecido ao processar pagamento' };
+            }
+            
+            // Mapear códigos de erro específicos do PagBank para mensagens amigáveis
+            const pagBankErrorCode = errorData.error?.code || errorData.error_message?.code;
+            let userFriendlyMessage = 'Erro ao processar pagamento com cartão de crédito';
+            
+            // Códigos de erro comuns do PagBank (baseado em padrões típicos de gateways de pagamento)
+           switch (pagBankErrorCode) {
+             case '502':
+               userFriendlyMessage = 'Cartão expirado';
+               break;
+             case '503':
+               userFriendlyMessage = 'Saldo insuficiente ou limite excedido';
+               break;
+             case '504':
+               userFriendlyMessage = 'Cartão inválido';
+               break;
+             case '505':
+               userFriendlyMessage = 'CVV inválido';
+               break;
+             case '506':
+               userFriendlyMessage = 'Banco não autorizou a transação';
+               break;
+             case '507':
+               userFriendlyMessage = 'Transação suspeita - entre em contato com sua operadora';
+               break;
+             case '508':
+               userFriendlyMessage = 'Limite de transações diárias excedido';
+               break;
+             case '509':
+               userFriendlyMessage = 'Cartão bloqueado pela operadora';
+               break;
+             case '510':
+               userFriendlyMessage = 'Dados do cartão inválidos';
+               break;
+             case '511':
+               userFriendlyMessage = 'Operação não permitida para este cartão';
+               break;
+case '512':
+                userFriendlyMessage = 'Falha na autenticação 3DS';
+                break;
+              default:
+                // Usar mensagem do PagBank se disponível, caso contrário genérica
+                userFriendlyMessage = errorData.error?.message || 
+                                    errorData.error_message?.message || 
+                                    'Erro ao processar pagamento com cartão de crédito';
+            }
+           
+logger.error('payments', 'pagbank', 'create_credit_card_order', 'PagBank API returned error', { 
+      status: 'failed' as LogOperationStatus,
+      errorCode: pagBankErrorCode,
+      errorData: errorData 
+    });
+           
+           orderResult.status = 'DECLINED';
+           throw new Error(userFriendlyMessage);
+         }
 
-          // Update stored order with real PagBank orderId
-          this.orders.set(data.id, orderResult);
-          
-          logger.info('payments', 'pagbank', 'create_credit_card_order', 'Credit card order created', {
-            orderId: data.id,
-            referenceId,
-            caseId,
-            status: 'success',
-            metadata: {
-              orderStatus: orderResult.status,
-              threeDsRequired: orderResult.threeDsChallengeRequired,
-            },
-          });
-        }
-      } catch (err) {
-        logger.error('payments', 'pagbank', 'create_credit_card_order', 'Failed to create credit card order', { error: String(err) });
-        orderResult.status = 'DECLINED';
-      }
-    } else {
-      // Sandbox simulation
-      orderResult.threeDsChallengeRequired = authenticationMethod === 'CHALLENGE';
-      orderResult.threeDsUrl = authenticationMethod === 'CHALLENGE' 
-        ? `https://sandbox.pagseguro.com/3ds/challenge/${orderId}`
-        : undefined;
-      orderResult.status = authenticationMethod === 'CHALLENGE' ? 'WAITING' : 'AUTHORIZED';
-      
-      logger.info('payments', 'pagbank', 'create_credit_card_order', 'Sandbox credit card order created', {
-        orderId,
-        referenceId,
-        caseId,
-        status: 'success',
-        metadata: {
-          orderStatus: orderResult.status,
-          threeDsRequired: orderResult.threeDsChallengeRequired,
-        },
-      });
-    }
+         const data = await response.json();
+         
+if (data.id) {
+            orderResult.orderId = data.id;
+            
+            // Tratar resposta do desafio 3DS
+            if (data.payment_response?.three_ds_challenge?.url) {
+             orderResult.threeDsUrl = data.payment_response.three_ds_challenge.url;
+             orderResult.threeDsChallengeRequired = true;
+             orderResult.status = 'WAITING';
+           } else if (data.payment_response?.status === 'AUTHORIZED') {
+             orderResult.status = 'AUTHORIZED';
+           } else if (data.payment_response?.status === 'PAID') {
+             orderResult.status = 'PAID';
+           } else {
+             orderResult.status = data.payment_response?.status || 'WAITING';
+}
+            
+            // Atualizar ordem armazenada com orderId real do PagBank
+            this.orders.set(data.id, orderResult);
+           
+           logger.info('payments', 'pagbank', 'create_credit_card_order', 'Credit card order created', {
+             orderId: data.id,
+             referenceId,
+             caseId,
+             status: 'success',
+             metadata: {
+               orderStatus: orderResult.status,
+               threeDsRequired: orderResult.threeDsChallengeRequired,
+             },
+           });
+         }
+       } catch (err) {
+         // If we already threw a user-friendly error above, don't override it
+         if (err.message && ['Cartão expirado', 'Saldo insuficiente ou limite excedido', 'Cartão inválido', 'CVV inválido', 'Banco não autorizou a transação', 'Transação suspeita - entre em contato com sua operadora', 'Limite de transações diárias excedido', 'Cartão bloqueado pela operadora', 'Dados do cartão inválidos', 'Operação não permitida para este cartão', 'Falha na autenticação 3DS'].includes(err.message)) {
+           logger.error('payments', 'pagbank', 'create_credit_card_order', 'Failed to create credit card order (user-friendly error)', { error: err.message });
+           orderResult.status = 'DECLINED';
+           throw err;
+         }
+         
+         logger.error('payments', 'pagbank', 'create_credit_card_order', 'Failed to create credit card order', { error: String(err) });
+         orderResult.status = 'DECLINED';
+         throw new Error('Erro ao processar pagamento com cartão de crédito');
+       }
+     } else {
+       // Sandbox simulation
+       orderResult.threeDsChallengeRequired = authenticationMethod === 'CHALLENGE';
+       orderResult.threeDsUrl = authenticationMethod === 'CHALLENGE' 
+         ? `https://sandbox.pagseguro.com/3ds/challenge/${orderId}`
+         : undefined;
+       orderResult.status = authenticationMethod === 'CHALLENGE' ? 'WAITING' : 'AUTHORIZED';
+       
+       logger.info('payments', 'pagbank', 'create_credit_card_order', 'Sandbox credit card order created', {
+         orderId,
+         referenceId,
+         caseId,
+         status: 'success',
+         metadata: {
+           orderStatus: orderResult.status,
+           threeDsRequired: orderResult.threeDsChallengeRequired,
+         },
+       });
+     }
 
     eventBus.publish(
       EventTopics.PAYMENT_PIX_GENERATED,
@@ -401,9 +475,9 @@ class PagBankIntegrationService {
     return orderResult;
   }
 
-  /**
-   * Retrieves order by ID, Reference ID, or Case ID
-   */
+/**
+    * Recupera ordem por ID, Reference ID ou Case ID
+    */
   public getOrder(orderOrCaseId: string): PagBankOrderResult | null {
     return (
       this.orders.get(orderOrCaseId) ||
@@ -412,10 +486,10 @@ class PagBankIntegrationService {
     );
   }
 
-  /**
-   * Confirms payment (Used by Webhook or Sandbox Simulator)
-   * Ensures idempotency: duplicate triggers do not duplicate operations.
-   */
+/**
+ * Confirma pagamento (Usado pelo Webhook ou Sandbox Simulator)
+ * Garante idempotência: gatilhos duplicados não duplicam operações.
+ */
   public confirmPayment(orderOrCaseId: string): { success: boolean; order: PagBankOrderResult; alreadyPaid: boolean } {
     let order = this.getOrder(orderOrCaseId);
     if (!order) {
@@ -449,9 +523,9 @@ class PagBankIntegrationService {
     return { success: true, order, alreadyPaid };
   }
 
-  /**
-   * Processes incoming PagBank Webhook with HMAC-SHA256 signature check and idempotency
-   */
+/**
+    * Processa webhook recebido do PagBank com verificação de assinatura HMAC-SHA256 e idempotência
+    */
   public processWebhook(
     rawBody: string,
     signatureHeader: string | undefined,
@@ -463,9 +537,9 @@ class PagBankIntegrationService {
     status?: string;
     isDuplicate: boolean;
     signatureValid: boolean;
-  } {
-    // 0. Verify HMAC-SHA256 signature (BLOCKER: Official PagBank requirement)
-    const signatureValid = this.verifyWebhookSignature(rawBody, signatureHeader || '');
+} {
+     // 0. Verificar assinatura HMAC-SHA256 (BLOQUEADOR: Requisito oficial do PagBank)
+     const signatureValid = this.verifyWebhookSignature(rawBody, signatureHeader || '');
     
     if (!signatureValid) {
       logger.error('payments', 'pagbank', 'process_webhook', 'Invalid webhook signature - HMAC-SHA256 verification failed', {
@@ -478,33 +552,33 @@ class PagBankIntegrationService {
       };
     }
 
-    const webhookEventId = payload.id || `wh_${Date.now()}`;
+const webhookEventId = payload.id || `wh_${Date.now()}`;
 
-    // 1. Idempotency Check: Avoid processing identical webhooks multiple times
-    if (this.processedWebhookIds.has(webhookEventId)) {
-      logger.info('payments', 'pagbank', 'process_webhook', 'Duplicate webhook ignored (Idempotent)', {
-        webhookEventId,
-      });
-      return { received: true, orderId: payload.id, isDuplicate: true, signatureValid: true };
-    }
-    this.processedWebhookIds.add(webhookEventId);
+     // 1. Verificação de Idempotência: Evitar processamento múltiplo de webhooks idênticos
+     if (this.processedWebhookIds.has(webhookEventId)) {
+       logger.info('payments', 'pagbank', 'process_webhook', 'Webhook duplicado ignorado (Idempotente)', {
+         webhookEventId,
+       });
+       return { received: true, orderId: payload.id, isDuplicate: true, signatureValid: true };
+     }
+     this.processedWebhookIds.add(webhookEventId);
 
-    // 2. Extract charge status and reference
-    const firstCharge = payload.charges?.[0];
-    const isPaid = firstCharge?.status === 'PAID';
-    const referenceId = payload.reference_id || firstCharge?.reference_id || '';
+     // 2. Extrair status da charge e referência
+     const firstCharge = payload.charges?.[0];
+     const isPaid = firstCharge?.status === 'PAID';
+const referenceId = payload.reference_id || firstCharge?.reference_id || '';
 
-    // Persist webhook event (idempotent by pagbank_event_id)
-    paymentRepository.persistWebhookEvent({
-      pagbankEventId: webhookEventId,
-      eventType: `pagbank.charge.${(firstCharge?.status || 'received').toLowerCase()}`,
-      payload,
-      processed: true,
-    });
+     // Persistir evento de webhook (idempotente por pagbank_event_id)
+     paymentRepository.persistWebhookEvent({
+       pagbankEventId: webhookEventId,
+       eventType: `pagbank.charge.${(firstCharge?.status || 'received').toLowerCase()}`,
+       payload,
+       processed: true,
+     });
 
-    let matchedOrder: PagBankOrderResult | null = null;
-    if (payload.id) matchedOrder = this.orders.get(payload.id) || null;
-    if (!matchedOrder && referenceId) matchedOrder = this.orders.get(referenceId) || null;
+     let matchedOrder: PagBankOrderResult | null = null;
+     if (payload.id) matchedOrder = this.orders.get(payload.id) || null;
+     if (!matchedOrder && referenceId) matchedOrder = this.orders.get(referenceId) || null;
 
     if (isPaid && matchedOrder) {
       this.confirmPayment(matchedOrder.orderId);
