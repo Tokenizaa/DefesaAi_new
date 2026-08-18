@@ -3,6 +3,7 @@ import { marketingOrchestrator } from './workers/marketing-orchestrator.worker';
 import { marketingMetricsCollector } from './workers/marketing-metrics.worker';
 
 // Import route modules
+import authRoutes from './routes/auth';
 import healthRoutes from './routes/health';
 import agentsRoutes from './routes/agents';
 import ocrRoutes from './routes/ocr';
@@ -21,6 +22,7 @@ import commercialRoutes from './routes/commercial';
 import knowledgeRoutes from './routes/knowledge';
 
 // Mount API routes
+app.use('/api/auth', authRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/agents', agentsRoutes);
 app.use('/api/ocr', ocrRoutes);

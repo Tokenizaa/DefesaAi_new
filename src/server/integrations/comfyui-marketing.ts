@@ -113,9 +113,9 @@ export class ComfyUIMarketing {
   private buildImageWorkflow(request: ImageGenerationRequest): ComfyUIWorkflow {
     const baseWorkflow: ComfyUIWorkflow = {
       "1": {
-        "class_type": "LoadCheckpoint",
+        "class_type": "CheckpointLoaderSimple",
         "inputs": {
-          "ckpt_name": "flux1-dev.safetensors"
+          "ckpt_name": "v1-5-pruned-emaonly.safetensors"
         }
       },
       "2": {
@@ -145,7 +145,7 @@ export class ComfyUIMarketing {
         "inputs": {
           "seed": Math.floor(Math.random() * 1000000),
           "steps": this.config.quality === 'production' ? 25 : 15,
-          "cfg": 3.5,
+          "cfg": 7.0,
           "sampler_name": "euler",
           "scheduler": "normal",
           "denoise": 1.0,
@@ -315,51 +315,51 @@ export class ComfyUIMarketing {
   /**
    * Get image dimensions based on request type and platform
    */
-  private getImageWidth(request: ImageGenerationRequest): number {
+private getImageWidth(request: ImageGenerationRequest): number {
     // Handle social-media type with platform-specific dimensions
     if (request.type === 'social-media' && request.platform) {
-      const socialMediaDimensions: Record<string, number> = {
-        instagram: 1024,
-        facebook: 1344,
-        linkedin: 1344,
-        tiktok: 576
-      };
-      return socialMediaDimensions[request.platform] || 1024;
+        const socialMediaDimensions: Record<string, number> = {
+            instagram: 512,   // SD1.5 max: 512
+            facebook: 512,    // SD1.5 max: 512
+            linkedin: 512,    // SD1.5 max: 512
+            tiktok: 512       // SD1.5 max: 512
+        };
+        return socialMediaDimensions[request.platform] || 512;
     }
 
     // Handle other content types
     const dimensions: Record<string, number> = {
-      'blog-header': 1344,
-      'infographic': 1024,
-      'quote-card': 1024,
-      'carousel': 1024
+        'blog-header': 512,   // SD1.5 max: 512
+        'infographic': 512,   // SD1.5 max: 512
+        'quote-card': 512,    // SD1.5 max: 512
+        'carousel': 512       // SD1.5 max: 512
     };
 
-    return dimensions[request.type] || 1024;
-  }
+    return dimensions[request.type] || 512;
+}
 
-  private getImageHeight(request: ImageGenerationRequest): number {
+private getImageHeight(request: ImageGenerationRequest): number {
     // Handle social-media type with platform-specific dimensions
     if (request.type === 'social-media' && request.platform) {
-      const socialMediaDimensions: Record<string, number> = {
-        instagram: 1024,
-        facebook: 672,
-        linkedin: 672,
-        tiktok: 1024
-      };
-      return socialMediaDimensions[request.platform] || 1024;
+        const socialMediaDimensions: Record<string, number> = {
+            instagram: 512,   // SD1.5 max: 512
+            facebook: 512,    // SD1.5 max: 512
+            linkedin: 512,    // SD1.5 max: 512
+            tiktok: 512       // SD1.5 max: 512
+        };
+        return socialMediaDimensions[request.platform] || 512;
     }
 
     // Handle other content types
     const dimensions: Record<string, number> = {
-      'blog-header': 768,
-      'infographic': 1360,
-      'quote-card': 1024,
-      'carousel': 1024
+        'blog-header': 512,   // SD1.5 max: 512
+        'infographic': 512,   // SD1.5 max: 512
+        'quote-card': 512,    // SD1.5 max: 512
+        'carousel': 512       // SD1.5 max: 512
     };
 
-    return dimensions[request.type] || 1024;
-  }
+    return dimensions[request.type] || 512;
+}
 
   /**
    * Get frame count based on duration

@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { eventBus, EventTopics } from '../../core/events/topics';
-import { runPipeline } from '../../agents/pipeline/runner';
+import { runPipeline } from '../../../agents/pipeline/runner';
 import { INITIAL_MARKETING_AGENTS, INITIAL_EDITORIAL_CONTENTS, BRAND_IDENTITY } from '../../data/marketing-agents-data';
+import { AiAnalysisAgent } from '../../../../agents/ai-analysis-agent';
+import { DocumentAgent } from '../../../../agents/document-agent';
+import { CommunicationAgent } from '../../../../agents/communication-agent';
+import { CaseContext } from '../../../../src/lib/types/agent-interfaces';
 
 const router = Router();
 
@@ -73,6 +77,105 @@ router.post('/pipeline/run', async (req, res) => {
   } catch (error: any) {
     console.error('[Pipeline Runner] Error:', error);
     res.status(500).json({ success: false, error: error.message || 'Erro na execução do pipeline' });
+  }
+});
+
+// AI Analysis Agent Endpoint
+router.post('/agents/ai-analysis/run', async (req, res) => {
+  try {
+    const caseData = req.body;
+    
+    // Create CaseContext from provided data
+    const context: CaseContext = {
+      user: caseData.user,
+      infraction: caseData.infraction,
+      service: caseData.service,
+      ocr: caseData.ocr,
+      classification: caseData.classification,
+      metadata: caseData.metadata || {
+        documentId: '',
+        version: '',
+        hash: '',
+        stepsCompleted: [],
+        validatedFields: [],
+        fieldErrors: {}
+      }
+    };
+
+    // Instantiate and run the agent
+    const agent = new AiAnalysisAgent();
+    const result = await agent.process(context);
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('[AI Analysis Agent] Error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Erro na execução do agente de análise de IA' });
+  }
+});
+
+// Document Agent Endpoint
+router.post('/agents/document/run', async (req, res) => {
+  try {
+    const caseData = req.body;
+    
+    // Create CaseContext from provided data
+    const context: CaseContext = {
+      user: caseData.user,
+      infraction: caseData.infraction,
+      service: caseData.service,
+      ocr: caseData.ocr,
+      classification: caseData.classification,
+      metadata: caseData.metadata || {
+        documentId: '',
+        version: '',
+        hash: '',
+        stepsCompleted: [],
+        validatedFields: [],
+        fieldErrors: {}
+      }
+    };
+
+    // Instantiate and run the agent
+    const agent = new DocumentAgent();
+    const result = await agent.process(context);
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('[Document Agent] Error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Erro na execução do agente de documento' });
+  }
+});
+
+// Communication Agent Endpoint
+router.post('/agents/communication/run', async (req, res) => {
+  try {
+    const caseData = req.body;
+    
+    // Create CaseContext from provided data
+    const context: CaseContext = {
+      user: caseData.user,
+      infraction: caseData.infraction,
+      service: caseData.service,
+      ocr: caseData.ocr,
+      classification: caseData.classification,
+      metadata: caseData.metadata || {
+        documentId: '',
+        version: '',
+        hash: '',
+        stepsCompleted: [],
+        validatedFields: [],
+        fieldErrors: {}
+      }
+    };
+
+    // Instantiate and run the agent
+    const agent = new CommunicationAgent();
+    const result = await agent.process(context);
+    
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('[Communication Agent] Error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Erro na execução do agente de comunicação' });
   }
 });
 

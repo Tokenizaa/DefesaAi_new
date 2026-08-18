@@ -160,61 +160,61 @@ export interface RulesMatrixEntry {
 }
 
 export const RULES_MATRIX: Record<InfractionCategory, Partial<RulesMatrixEntry>> = {
-  excesso_velocidade: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate', 'speedLimit', 'measuredSpeed'],
-    optionalFreeFields: ['dateTime', 'location', 'inmetroAferitionDate', 'radarEquipmentId', 'notificationExpeditionDate'],
-    inferableFields: ['consideredSpeed', 'ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  lei_seca: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'location', 'hasSignTerm', 'offeredRetest', 'refusedTest'],
-    inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  celular: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'location', 'wasInHolder', 'hadPhysicalApproach', 'description'],
-    inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  vermelho: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'location', 'yellowDurationIssue', 'emergencyPassage', 'description'],
-    inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  estacionamento: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'location', 'parkingCircumstance', 'hasRegulatorySign', 'description'],
-    inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  indicacao_condutor: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'realDriverName', 'realDriverCpf', 'realDriverCnh'],
-    inferableFields: ['ctbArticle', 'infractionCode'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  conversao_advertencia: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'noReoffense12Months'],
-    inferableFields: ['ctbArticle', 'infractionCode', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  cnh_geral: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'location', 'description'],
-    inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-  outro: {
-    requiredFreeFields: ['aitNumber', 'autuadorBody', 'plate'],
-    optionalFreeFields: ['dateTime', 'location', 'description', 'infractionCode'],
-    inferableFields: ['ctbArticle', 'severity', 'points', 'fineAmount'],
-    requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
-  },
-};
+   excesso_velocidade: {
+     requiredFreeFields: ['autuadorBody', 'plate', 'speedLimit', 'measuredSpeed'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'location', 'inmetroAferitionDate', 'radarEquipmentId', 'notificationExpeditionDate'],
+     inferableFields: ['consideredSpeed', 'ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   lei_seca: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'location', 'hasSignTerm', 'offeredRetest', 'refusedTest'],
+     inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   celular: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'location', 'wasInHolder', 'hadPhysicalApproach', 'description'],
+     inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   vermelho: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'location', 'yellowDurationIssue', 'emergencyPassage', 'description'],
+     inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   estacionamento: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'location', 'parkingCircumstance', 'hasRegulatorySign', 'description'],
+     inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   indicacao_condutor: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'realDriverName', 'realDriverCpf', 'realDriverCnh'],
+     inferableFields: ['ctbArticle', 'infractionCode'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   conversao_advertencia: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'noReoffense12Months'],
+     inferableFields: ['ctbArticle', 'infractionCode', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   cnh_geral: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'location', 'description'],
+     inferableFields: ['ctbArticle', 'infractionCode', 'severity', 'points', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+   outro: {
+     requiredFreeFields: ['autuadorBody', 'plate'],
+     optionalFreeFields: ['aitNumber', 'dateTime', 'location', 'description', 'infractionCode'],
+     inferableFields: ['ctbArticle', 'severity', 'points', 'fineAmount'],
+     requiredDocumentFields: ['applicantName', 'applicantCpf', 'applicantCnh', 'cnhCategory', 'applicantEmail', 'applicantPhone', 'addressStreet', 'addressNumber', 'addressNeighborhood', 'addressZipCode', 'addressCityState'],
+   },
+ };
 
 /**
  * Calcula a velocidade considerada segundo a Tabela I da Resolução CONTRAN nº 798/2020.

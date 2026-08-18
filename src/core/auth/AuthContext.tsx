@@ -18,6 +18,8 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
   resetPassword: (email: string) => Promise<{ success: boolean; message: string }>;
+  // Function to associate anonymous cases with user upon authentication
+  associateAnonymousCases: (userId: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,6 +71,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               };
               setUser(authUser);
               setStoredSession(authUser);
+              
+              // Associate anonymous cases with the newly authenticated user
+              if (isSupabaseConfigured && supabase) {
+                associateAnonymousCases(session.user.id);
+              }
             } else {
               setUser(null);
               setStoredSession(null);
@@ -98,6 +105,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, []);
 
+  // Associate anonymous cases with user upon authentication
+  const associateAnonymousCases = async (userId: string) => {
+    if (!isSupabaseConfigured || !supabase) return;
+    
+    try {
+      // Find anonymous cases that have a claimToken
+      const { data: cases, error } = await supabase
+        .from('cases')
+        .select('id, claim_token')
+        .is_('user_id', null)
+        .eq('is_anonymous', true)
+        .not('claim_token', 'is', null);
+      
+      if (error) {
+        console.error('Error fetching anonymous cases:', error);
+        return;
+      }
+      
+      // Update each case to associate with the user and clear claimToken
+      for (const caseItem of cases || []) {
+        await supabase
+          .from('cases')
+          .update({
+            user_id: userId,
+            is_anonymous: false,
+            claim_token: null, // Clear the claim token after use
+          })
+          .eq('id', caseItem.id);
+      }
+    } catch (err) {
+      console.error('Error associating anonymous cases:', err);
+    }
+  };
+
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     const cleanEmail = email.trim().toLowerCase();
@@ -117,6 +158,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(demo.user);
             setStoredSession(demo.user);
             setIsLoading(false);
+            // Associate anonymous cases for demo user
+            associateAnonymousCases(demo.user.id);
             return { success: true };
           }
           setIsLoading(false);
@@ -135,6 +178,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(authUser);
           setStoredSession(authUser);
           setIsLoading(false);
+          // Associate anonymous cases with the newly authenticated user
+          associateAnonymousCases(data.user.id);
           return { success: true };
         }
       } catch (err: any) {
@@ -160,6 +205,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(found.user);
     setStoredSession(found.user);
     setIsLoading(false);
+    // Associate anonymous cases for local user
+    associateAnonymousCases(found.user.id);
     return { success: true };
   };
 
@@ -214,6 +261,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setStoredSession(authUser);
           saveStoredUser(cleanEmail, authUser, password);
           setIsLoading(false);
+          // Associate anonymous cases with the newly registered user
+          associateAnonymousCases(data.user.id);
           return { success: true };
         }
       } catch (err: any) {
@@ -241,6 +290,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
     setStoredSession(newUser);
     setIsLoading(false);
+    // Associate anonymous cases for local user
+    associateAnonymousCases(newUser.id);
     return { success: true };
   };
 
@@ -251,6 +302,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(demo.user);
     setStoredSession(demo.user);
     setIsLoading(false);
+    // Associate anonymous cases for demo user
+    associateAnonymousCases(demo.user.id);
   };
 
   const loginAsDemoAdmin = async () => {
@@ -260,6 +313,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(demo.user);
     setStoredSession(demo.user);
     setIsLoading(false);
+    // Associate anonymous cases for demo admin
+    associateAnonymousCases(demo.user.id);
   };
 
   const logout = async () => {

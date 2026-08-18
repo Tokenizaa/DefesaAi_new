@@ -10,8 +10,7 @@ import { AdminLayout } from './components/layout/AdminLayout';
 
 // Public Pages
 import { LandingPageView } from './components/public/LandingPageView';
-import { LoginPageView } from './components/public/LoginPageView';
-import { RegisterPageView } from './components/public/RegisterPageView';
+import { AuthPageView } from './components/public/AuthPageView';
 
 // User Pages
 import { UserDashboardView } from './components/user/UserDashboardView';
@@ -297,12 +296,21 @@ function AppContent() {
   // 3. ÁREA PÚBLICA (Rotas /, /login, /cadastro, /novo-caso)
   // =========================================================================
   return (
-    <PublicLayout>
-      {currentPath === '/' && <LandingPageView />}
+     <PublicLayout>
+       {currentPath === "/" && <LandingPageView />}
 
-      {currentPath === '/login' && <LoginPageView />}
+       {currentPath === "/login" && <AuthPageView mode="login" />}
 
-      {currentPath === '/cadastro' && <RegisterPageView />}
+       {currentPath === "/cadastro" && <AuthPageView mode="register" />}
+
+       {currentPath === "/novo-caso" && (
+         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
+           <OnboardingWizard
+             onCaseReadyForCheckout={handleCaseReadyForCheckout}
+             onOpenKnowledge={() => navigate("/admin/knowledge")}
+           />
+         </div>
+       )}
 
       {currentPath === '/novo-caso' && (
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
