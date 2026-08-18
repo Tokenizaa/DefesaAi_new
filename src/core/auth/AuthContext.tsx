@@ -362,10 +362,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
+const resetPassword = async (email: string): Promise<{ success: boolean; message: string }> => {
     const cleanEmail = email.trim().toLowerCase();
     if (isSupabaseConfigured && supabase) {
       try {
+        /**
+         * NOTA: Em produção, este método deve ser modificado para chamar
+         * o Edge Function 'reset-password-rate-limiter' para proteção
+         * contra abusos via rate limiting no backend.
+         * 
+         * Exemplo de implementação futura:
+         * const { data, error } = await supabase.functions.invoke('reset-password-rate-limiter', {
+         *   body: { email: cleanEmail }
+         * });
+         */
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail);
         if (error) {
           return { success: false, message: error.message };
@@ -383,9 +393,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  const role = user?.role || null;
-  const isAuthenticated = Boolean(user);
-  const isAdmin = role === 'admin';
+  // Derive auth state from user
+  const role: UserRole | null = user?.role || null;
+  const isAuthenticated = !!user;
+  const isAdmin = user?.role === 'admin';
 
   return (
     <AuthContext.Provider
@@ -402,6 +413,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateProfile,
         resetPassword,
+        associateAnonymousCases,
       }}
     >
       {children}
