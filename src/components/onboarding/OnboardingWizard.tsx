@@ -27,6 +27,7 @@ import {
   USER_PROCESS_STAGES,
   RULES_MATRIX
 } from '../../core/onboarding/rules-matrix';
+import { z } from 'zod';
 
 import { ServiceStep } from './steps/ServiceStep';
 import { DefenseStageStep } from './steps/DefenseStageStep';
@@ -37,6 +38,7 @@ import { FreeAnalysisResultStep } from './steps/FreeAnalysisResultStep';
 import { RequiredDataStep } from './generation/RequiredDataStep';
 import { DocumentReviewStep } from './generation/DocumentReviewStep';
 import { DocumentCheckoutStep } from './generation/DocumentCheckoutStep';
+import { IdentityVerificationStep } from './identity/IdentityVerificationStep';
 
 interface OnboardingWizardProps {
   onCaseReadyForCheckout?: (newCase: CaseDomain) => void;
@@ -50,7 +52,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const { navigate } = useRouter();
   const { user } = useAuth();
 
-  // Wizard Step (1 to 6: Phase 1 Free Analysis, 7 to 9: Phase 2 Paid Document Generation)
+  // Wizard Step (1 to 6: Phase 1 Free Analysis, 7: Identity Verification, 8 to 10: Phase 2 Paid Document Generation)
   const [step, setStep] = useState<number>(1);
 
   // =========================================================================
@@ -171,7 +173,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       : 'defesa_previa';
 
   const isPhase1 = step <= 6;
-  const isPhase2 = step >= 7;
+  const isIdentityStep = step === 7;
+  const isPhase2 = step >= 8;
 
   // Handlers
   const handleSituationSelect = (selected: UserSituation) => {
@@ -229,8 +232,21 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     setStep(6); // Exibir resultado do diagnóstico gratuito
   };
 
-  const handleProceedToDocumentGeneration = () => {
-    setStep(7); // Início da Fase 2 (Qualificação)
+  const handleProceedToIdentityVerification = () => {
+    setStep(7); // Verificação de Identidade
+  };
+
+  const handleIdentityVerified = (isAuthenticated: boolean, userData: { name: string; email: string; phone: string } | null) => {
+    if (isAuthenticated && userData) {
+      // User logged in or created account, update documentData with user info
+      setDocumentData(prev => ({
+        ...prev,
+        applicantName: userData.name,
+        applicantEmail: userData.email,
+        applicantPhone: userData.phone,
+      }));
+    }
+    setStep(8); // Continue to RequiredDataStep
   };
 
   const handleSaveToDashboard = () => {
@@ -252,25 +268,27 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         <div className="flex items-center gap-3">
           <div
             className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${
-              isPhase1 ? 'bg-[#155BCB] text-white' : 'bg-emerald-600 text-white'
+              isPhase1 ? 'bg-[#155BCB] text-white' : isIdentityStep ? 'bg-[#8B5CF6] text-white' : 'bg-emerald-600 text-white'
             }`}
           >
-            {isPhase1 ? 'F1' : 'F2'}
+            {isPhase1 ? 'F1' : isIdentityStep ? 'FID' : 'F2'}
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] font-bold uppercase font-mono tracking-wider text-slate-500">
-                {isPhase1 ? 'Fase 1 • Diagnóstico Preliminar' : 'Fase 2 • Petição Formal'}
+                {isPhase1 ? 'Fase 1 • Diagnóstico Preliminar' : isIdentityStep ? 'Identificação' : 'Fase 2 • Petição Formal'}
               </span>
               <span className="text-slate-300">•</span>
               <span
                 className={`text-[10px] font-bold font-mono px-1.5 py-0.2 rounded ${
                   isPhase1
                     ? 'bg-blue-50 text-[#155BCB] border border-blue-200'
+                    : isIdentityStep
+                    ? 'bg-purple-50 text-[#8B5CF6] border border-purple-200'
                     : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                 }`}
               >
-                {isPhase1 ? '100% Gratuito' : 'Minuta Jurídica Oficial'}
+                {isPhase1 ? '100% Gratuito' : isIdentityStep ? 'Conta do Usuário' : 'Minuta Jurídica Oficial'}
               </span>
             </div>
             <h2 className="text-xs font-bold text-slate-900 mt-0.5">
@@ -280,22 +298,27 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               {step === 4 && '4. Perguntas Específicas do Seu Caso'}
               {step === 5 && '5. Processando Análise Jurídica'}
               {step === 6 && '6. Diagnóstico Preliminar Concluído'}
-              {step === 7 && '7. Qualificação do Requerente para a Peça'}
-              {step === 8 && '8. Revisão da Petição Formal'}
-              {step === 9 && '9. Emissão & Pagamento Seguro'}
+              {step === 7 && '7. Verificação de Identidade'}
+              {step === 8 && '8. Qualificação do Requerente para a Peça'}
+              {step === 9 && '9. Revisão da Petição Formal'}
+              {step === 10 && '10. Emissão & Pagamento Seguro'}
             </h2>
           </div>
         </div>
 
         {/* Mini progress tracker */}
         <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((s) => (
             <div
               key={s}
               className={`h-1.5 rounded-full transition-all ${
                 s === step
                   ? 'w-6 bg-[#155BCB]'
-                  : s < step
+                  : s < step && s <= 6
+                  ? 'w-2.5 bg-emerald-600'
+                  : s === 7
+                  ? 'w-2.5 bg-purple-600'
+                  : s > 7
                   ? 'w-2.5 bg-emerald-600'
                   : 'w-2.5 bg-slate-200'
               }`}
@@ -360,36 +383,47 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           infractionData={infractionData}
           vehicleData={vehicleData}
           serviceType={mappedProcedure}
-          onProceedToDocumentGeneration={handleProceedToDocumentGeneration}
+          onProceedToDocumentGeneration={handleProceedToIdentityVerification}
           onSaveToDashboard={handleSaveToDashboard}
         />
       )}
 
       {step === 7 && (
-        <RequiredDataStep
-          documentData={documentData}
-          infractionData={infractionData}
-          vehicleData={vehicleData}
-          onUpdateDocumentData={setDocumentData}
-          onNext={() => setStep(8)}
+        <IdentityVerificationStep
+          // Pre-fill data from onboarding if available
+          prefilledName={documentData.applicantName}
+          prefilledPhone={documentData.applicantPhone}
+          prefilledEmail={documentData.applicantEmail}
+          onIdentityVerified={handleIdentityVerified}
           onBack={() => setStep(6)}
         />
       )}
 
       {step === 8 && (
+        <RequiredDataStep
+          documentData={documentData}
+          infractionData={infractionData}
+          vehicleData={vehicleData}
+          onUpdateDocumentData={setDocumentData}
+          onNext={() => setStep(9)}
+          onBack={() => setStep(7)}
+        />
+      )}
+
+      {step === 9 && (
         <DocumentReviewStep
           documentData={documentData}
           infractionData={infractionData}
           vehicleData={vehicleData}
           analysis={caseAnalysis}
           serviceType={mappedProcedure}
-          onEditQualification={() => setStep(7)}
-          onProceedToPayment={() => setStep(9)}
-          onBack={() => setStep(7)}
+          onEditQualification={() => setStep(8)}
+          onProceedToPayment={() => setStep(10)}
+          onBack={() => setStep(8)}
         />
       )}
 
-      {step === 9 && (
+      {step === 10 && (
         <DocumentCheckoutStep
           currentCaseId={savedCaseId}
           documentData={documentData}
@@ -398,7 +432,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           analysis={caseAnalysis}
           serviceType={mappedProcedure}
           onPaymentSuccess={handlePaymentSuccess}
-          onBack={() => setStep(8)}
+          onBack={() => setStep(9)}
         />
       )}
     </div>

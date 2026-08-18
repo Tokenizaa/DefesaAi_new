@@ -201,7 +201,7 @@ auditLogsStore.push({
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = 8080;
 
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -212,7 +212,6 @@ async function startServer() {
   app.use('/api/admin', adminRoutes);
   app.use('/api', adminRoutes);
   app.use('/api/integrations', metaRoutes);
-  app.use('/api', metaRoutes);
   app.use('/api/monitoring', monitoringRoutes);
   app.use('/api', monitoringRoutes);
   app.use('/api/settings', settingsRoutes);
@@ -231,7 +230,7 @@ async function startServer() {
 
   // Meta Status Direct Fallback Route for UI Compatibility
   app.get(['/api/meta/status', '/api/marketing/meta/status'], (req, res) => {
-    res.json(metaIntegration.getStatus());
+    res.json(metaIntegration.getConnectionState());
   });
 
   // Health check

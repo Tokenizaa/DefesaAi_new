@@ -6,7 +6,9 @@
     "directory": "dist"
   },
   "name": "tokenizaa-defesa-f-cil",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "no_bundle": true,
   "workers_dev": true,
   "routes": [
@@ -30,5 +32,9 @@
       "pattern": "www.multa.emprestamais.shop/api/webhooks/ggpix",
       "zone_name": "emprestamais.shop"
     }
-  ]
+  ],
+  "vars": {
+    "PAYMENT_ACTIVE_GATEWAY": "ggpixapi",
+    "GGPIX_ENABLED": "true"
+  }
 }

@@ -273,7 +273,7 @@ export class PlanejamentoAgent {
     return plan;
   }
 
-  private async allocateContentSlots(): Promise<void> {
+  private async allocateContentSlotsReal(): Promise<void> {
     // Simulate allocating content slots
     logger.debug('marketing', 'agents', 'run', 'Allocating content slots for upcoming week');
     await new Promise(resolve => setTimeout(resolve, 150)); // Simulate work

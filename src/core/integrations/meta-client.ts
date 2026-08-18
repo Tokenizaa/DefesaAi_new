@@ -1,5 +1,13 @@
-import { MetaAccountState, MetaPublishRequest, MetaPublishResult } from '../../types';
+import { 
+  MetaAccountState, 
+  MetaPublishRequest, 
+  MetaPublishResult 
+} from '../../types';
 
+/**
+ * Meta Client - Wrapper around the canonical Meta integration service
+ * This maintains backward compatibility while using the new canonical implementation
+ */
 export async function getMetaStatus(): Promise<MetaAccountState> {
   const res = await fetch('/api/integrations/meta/status');
   if (!res.ok) {
@@ -27,12 +35,14 @@ export async function connectMetaWithToken(
   const res = await fetch('/api/integrations/meta/connect', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accessToken, pageId, instagramAccountId }),
+    body: JSON.stringify({ accessToken, pageId, instagramAccountId })
   });
+  
   if (!res.ok) {
     const data = await res.json();
     throw new Error(data.error || 'Falha ao conectar token Meta');
   }
+  
   return res.json();
 }
 
@@ -48,11 +58,13 @@ export async function publishToMeta(params: MetaPublishRequest): Promise<MetaPub
   const res = await fetch('/api/integrations/meta/publish', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    body: JSON.stringify(params)
   });
+  
   if (!res.ok) {
     const data = await res.json();
     throw new Error(data.error || 'Falha na publicação Meta');
   }
+  
   return res.json();
 }

@@ -183,18 +183,20 @@ export class ExpertRuleEngine {
    * Evaluates an infraction against the entire catalog of deterministic rules
    */
   public static evaluate(caseId: string, infraction: InfractionData): CaseAnalysis {
-    const context: RuleEvaluationContext = {
-      infractionCode: infraction.infractionCode,
-      infractionDate: infraction.dateTime,
-      notificationExpeditionDate: infraction.notificationExpeditionDate,
-      defenseDeadline: infraction.defenseDeadline,
-      speedLimit: infraction.speedLimit,
-      measuredSpeed: infraction.measuredSpeed,
-      consideredSpeed: infraction.consideredSpeed,
-      radarEquipmentId: infraction.radarEquipmentId,
-      radarCalibrationDate: infraction.inmetroAferitionDate,
-      autuadorBody: infraction.autuadorBody,
-    };
+const context: RuleEvaluationContext = {
+       infractionCode: infraction.infractionCode,
+       infractionDate: infraction.dateTime,
+       notificationExpeditionDate: infraction.notificationExpeditionDate,
+       defenseDeadline: infraction.defenseDeadline,
+       speedLimit: infraction.speedLimit,
+       measuredSpeed: infraction.measuredSpeed,
+       consideredSpeed: infraction.consideredSpeed,
+       radarEquipmentId: infraction.radarEquipmentId,
+       radarCalibrationDate: infraction.inmetroAferitionDate,
+       hasPreviousInfractionsLast12Months: infraction.hasPreviousInfractionsLast12Months,
+       hasR19SignageProof: infraction.hasR19SignageProof,
+       autuadorBody: infraction.autuadorBody,
+     };
 
     const detectedInconsistencies: CaseAnalysis['detectedInconsistencies'] = [];
     const recommendedArgs: LegalArgumentDomain[] = [];

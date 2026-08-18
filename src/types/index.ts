@@ -50,30 +50,32 @@ export interface VehicleData {
 }
 
 export interface InfractionData {
-  id?: string;
-  aitNumber: string; // Número do Auto de Infração
-  infractionCode?: string; // ex: 745-50
-  code?: string;
-  description: string;
-  ctbArticle: string; // ex: Art. 218, I
-  severity: InfractionSeverity;
-  points: number;
-  fineAmount: number;
-  autuadorBody: string; // ex: DETRAN-SP, PRF, DNIT, DER
-  autuadorCode?: string;
-  dateTime: string;
-  location: string;
-  speedLimit?: number;
-  measuredSpeed?: number;
-  consideredSpeed?: number;
-  speedMeasured?: number;
-  speedConsidered?: number;
-  radarEquipmentId?: string;
-  inmetroAferitionDate?: string;
-  notificationExpeditionDate?: string;
-  defenseDeadline?: string; // Prazo fixado na notificação informada pelo usuário
-  formalFlawsDetected?: string[];
-}
+   id?: string;
+   aitNumber: string; // Número do Auto de Infração
+   infractionCode?: string; // ex: 745-50
+   code?: string;
+   description: string;
+   ctbArticle: string; // ex: Art. 218, I
+   severity: InfractionSeverity;
+   points: number;
+   fineAmount: number;
+   autuadorBody: string; // ex: DETRAN-SP, PRF, DNIT, DER
+   autuadorCode?: string;
+   dateTime: string;
+   location: string;
+   speedLimit?: number;
+   measuredSpeed?: number;
+   consideredSpeed?: number;
+   speedMeasured?: number;
+   speedConsidered?: number;
+   radarEquipmentId?: string;
+   inmetroAferitionDate?: string;
+   notificationExpeditionDate?: string;
+   defenseDeadline?: string; // Prazo fixado na notificação informada pelo usuário
+   formalFlawsDetected?: string[];
+   hasPreviousInfractionsLast12Months?: boolean;
+   hasR19SignageProof?: boolean;
+ }
 
 export interface LegalArgumentDomain {
   id: string;
